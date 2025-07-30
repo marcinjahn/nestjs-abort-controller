@@ -1,0 +1,45 @@
+import { AbortControllerMiddleware } from '../src/abort-controller.middleware';
+import { AbortControllerRequest } from '../src/types';
+
+describe('AbortControllerMiddleware', () => {
+  let middleware: AbortControllerMiddleware;
+  let req: Partial<AbortControllerRequest>;
+  let res: any;
+  let next: jest.Mock;
+
+  beforeEach(() => {
+    middleware = new AbortControllerMiddleware();
+    req = { on: jest.fn() };
+    res = { on: jest.fn() };
+    next = jest.fn();
+  });
+
+  it('should attach abortController and abortSignal to request', () => {
+    middleware.use(req as any, res, next);
+    expect(req.abortController).toBeDefined();
+    expect(req.abortSignal).toBeDefined();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('should register close event handler', () => {
+    const fakeReq: any = { on: jest.fn() };
+    const fakeRes: any = { on: jest.fn() };
+    const fakeNext = jest.fn();
+    middleware.use(fakeReq, fakeRes, fakeNext);
+    // Check that the close event handler was registered
+    expect(fakeReq.on).toHaveBeenCalledWith('close', expect.any(Function));
+    expect(fakeNext).toHaveBeenCalled();
+  });
+
+  it('should abort on timeout', (done) => {
+    AbortControllerMiddleware.setOptions({ timeout: 10, enableLogging: false });
+    const fakeReq: any = { on: jest.fn() };
+    const fakeRes: any = { on: jest.fn() };
+    const fakeNext = jest.fn();
+    middleware.use(fakeReq, fakeRes, fakeNext);
+    setTimeout(() => {
+      expect(fakeReq.abortController.signal.aborted).toBe(true);
+      done();
+    }, 20);
+  });
+});

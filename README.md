@@ -1,0 +1,375 @@
+# nestjs-abort-controller
+
+[![npm version](https://badge.fury.io/js/nestjs-abort-controller.svg)](https://badge.fury.io/js/nestjs-abort-controller)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Graceful request cancellation support for NestJS using native `AbortController`. Automatically handles client disconnections and provides easy-to-use decorators for request-scoped cancellation.
+
+## ✨ Features
+
+- 🚀 **Automatic AbortController Creation**: Creates `AbortSignal` for each incoming HTTP request
+- 🔄 **Client Disconnection Handling**: Automatically aborts long-running operations when client disconnects
+- 🎯 **Easy Integration**: Simple decorator-based approach with `@NestAbortSignal()`
+- ⚡ **Lightweight**: Zero additional dependencies (only Node >= 16)
+- 🔧 **TypeScript Support**: Full TypeScript support with proper type definitions
+- 🛡️ **Error Handling**: Built-in utilities for checking abort status
+- ⏰ **Configurable Timeout**: Set request timeout to automatically abort long-running operations
+- 📝 **Logging Support**: Optional logging for debugging abort scenarios
+
+## 📦 Installation
+
+```bash
+npm install nestjs-abort-controller
+```
+
+## 🚀 Quick Start
+
+### 1. Import the Module
+
+```typescript
+import { Module } from '@nestjs/common';
+import { AbortControllerModule } from 'nestjs-abort-controller';
+
+@Module({
+  imports: [
+    AbortControllerModule.forRoot({
+      timeout: 30000, // 30 seconds timeout
+      enableLogging: true,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### 2. Use the Decorator
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal, throwIfAborted } from 'nestjs-abort-controller';
+
+@Controller('api')
+export class ApiController {
+  @Get('long-running-operation')
+  async longRunningOperation(@NestAbortSignal() signal: AbortSignal): Promise<string> {
+    for (let i = 0; i < 100; i++) {
+      // Check if operation was aborted
+      throwIfAborted(signal);
+
+      // Your long-running work here
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    return 'Operation completed successfully!';
+  }
+}
+```
+
+## 📚 API Reference
+
+### Decorators
+
+#### `@NestAbortSignal()`
+
+A parameter decorator that injects the `AbortSignal` for the current request.
+
+```typescript
+@Get()
+async handler(@NestAbortSignal() signal: AbortSignal) {
+  // signal is automatically aborted when client disconnects
+}
+```
+
+### Utility Functions
+
+#### `throwIfAborted(signal: AbortSignal, message?: string): void`
+
+Throws an `AbortError` if the signal is aborted.
+
+```typescript
+import { throwIfAborted } from 'nestjs-abort-controller';
+
+async function longRunningOperation(signal: AbortSignal) {
+  for (let i = 0; i < 1000; i++) {
+    throwIfAborted(signal); // Will throw if aborted
+
+    // Your work here
+    await someAsyncWork();
+  }
+}
+```
+
+#### `AbortError`
+
+Custom error class for abort operations.
+
+```typescript
+import { AbortError } from 'nestjs-abort-controller';
+
+try {
+  // Some operation
+} catch (error) {
+  if (error instanceof AbortError) {
+    console.log('Operation was aborted');
+  }
+}
+```
+
+### `AbortControllerModule`
+
+The main module that sets up the middleware for all routes.
+
+#### `forRoot(options?: AbortControllerOptions)`
+
+Configure the module for all routes.
+
+```typescript
+import { AbortControllerModule } from 'nestjs-abort-controller';
+
+@Module({
+  imports: [
+    AbortControllerModule.forRoot({
+      timeout: 30000, // 30 seconds
+      enableLogging: true,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+#### `forRoutes(routes: string | string[], options?: AbortControllerOptions)`
+
+Configure the module for specific routes.
+
+```typescript
+import { AbortControllerModule } from 'nestjs-abort-controller';
+
+@Module({
+  imports: [
+    AbortControllerModule.forRoutes(['/api/*'], {
+      timeout: 60000,
+      enableLogging: false,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Configuration Options
+
+#### `AbortControllerOptions`
+
+```typescript
+interface AbortControllerOptions {
+  timeout?: number; // Timeout in milliseconds (default: 30000)
+  enableLogging?: boolean; // Enable debug logging (default: false)
+}
+```
+
+## 🔧 Advanced Usage
+
+### Using with Services
+
+The recommended approach is to pass the `AbortSignal` from controller to service methods.
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { throwIfAborted } from 'nestjs-abort-controller';
+
+@Injectable()
+export class UserService {
+  async getUsers(signal: AbortSignal) {
+    for (let i = 0; i < 100; i++) {
+      throwIfAborted(signal);
+      await someAsyncWork();
+    }
+    return users;
+  }
+}
+
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal } from 'nestjs-abort-controller';
+
+@Controller('users')
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Get()
+  getUsers(@NestAbortSignal() signal: AbortSignal) {
+    // Pass signal to service
+    return this.userService.getUsers(signal);
+  }
+}
+```
+
+### Integration with External APIs
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ExternalApiService {
+  async fetchFromExternalApi(signal: AbortSignal) {
+    const response = await fetch('https://api.example.com/data', {
+      signal, // Pass the signal to fetch
+    });
+
+    return response.json();
+  }
+}
+
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal } from 'nestjs-abort-controller';
+
+@Controller('api')
+export class ApiController {
+  constructor(private externalApiService: ExternalApiService) {}
+
+  @Get('external-data')
+  async getExternalData(@NestAbortSignal() signal: AbortSignal) {
+    return this.externalApiService.fetchFromExternalApi(signal);
+  }
+}
+```
+
+### Manual Abort Signal Checking
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal, throwIfAborted } from 'nestjs-abort-controller';
+
+@Controller('api')
+export class ApiController {
+  @Get('manual-check')
+  async manualCheck(@NestAbortSignal() signal: AbortSignal) {
+    for (let i = 0; i < 1000; i++) {
+      // Manual check
+      if (signal.aborted) {
+        throw new Error('Operation was cancelled');
+      }
+
+      // Or use utility function
+      throwIfAborted(signal);
+
+      await someAsyncWork();
+    }
+  }
+}
+```
+
+### Error Handling
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal, throwIfAborted, AbortError } from 'nestjs-abort-controller';
+
+@Controller('api')
+export class ApiController {
+  @Get('with-error-handling')
+  async withErrorHandling(@NestAbortSignal() signal: AbortSignal) {
+    try {
+      for (let i = 0; i < 100; i++) {
+        throwIfAborted(signal);
+        await someAsyncWork();
+      }
+      return 'Success';
+    } catch (error) {
+      if (error instanceof AbortError) {
+        // Handle abort specifically
+        return 'Operation was cancelled';
+      }
+      throw error;
+    }
+  }
+}
+```
+
+### Multiple Service Calls
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { throwIfAborted } from 'nestjs-abort-controller';
+
+@Injectable()
+export class DataService {
+  async processData(signal: AbortSignal) {
+    throwIfAborted(signal);
+    // Process data
+    return processedData;
+  }
+}
+
+@Injectable()
+export class CacheService {
+  async getFromCache(signal: AbortSignal) {
+    throwIfAborted(signal);
+    // Get from cache
+    return cachedData;
+  }
+}
+
+import { Controller, Get } from '@nestjs/common';
+import { NestAbortSignal } from 'nestjs-abort-controller';
+
+@Controller('data')
+export class DataController {
+  constructor(
+    private dataService: DataService,
+    private cacheService: CacheService
+  ) {}
+
+  @Get('process')
+  async processData(@NestAbortSignal() signal: AbortSignal) {
+    // Use same signal for multiple service calls
+    const cached = await this.cacheService.getFromCache(signal);
+    const processed = await this.dataService.processData(signal);
+
+    return { cached, processed };
+  }
+}
+```
+
+## 🧪 Testing
+
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { AbortControllerModule } from 'nestjs-abort-controller';
+
+describe('AbortController', () => {
+  let module: TestingModule;
+
+  beforeEach(async () => {
+    module = await Test.createTestingModule({
+      imports: [AbortControllerModule.forRoot()],
+    }).compile();
+  });
+
+  // Your tests here
+});
+```
+
+## 📋 Requirements
+
+- Node.js >= 16.0.0
+- NestJS >= 8.0.0
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built for the NestJS community
+- Inspired by the need for better request cancellation handling
+- Uses native Node.js AbortController for maximum compatibility
+
+---
+
+**Made with ❤️ for the NestJS community**
