@@ -1,6 +1,6 @@
 {
   "name": "nestjs-abort-controller",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AbortController integration for NestJS: request-scoped cancellation using AbortSignal.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -54,17 +54,18 @@
     "node": ">=16.0.0"
   },
   "peerDependencies": {
-    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0"
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0"
   },
   "dependencies": {
+    "nestjs-abort-controller": "^1.1.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.0.0"
   },
   "devDependencies": {
-    "@nestjs/common": "^10.0.0",
-    "@nestjs/core": "^10.0.0",
-    "@nestjs/testing": "^10.0.0",
+    "@nestjs/common": "^11.1.5",
+    "@nestjs/core": "^11.1.5",
+    "@nestjs/testing": "^11.1.5",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.0.0",
     "@types/node": "^18.0.0",

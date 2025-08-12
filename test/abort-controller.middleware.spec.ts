@@ -32,7 +32,7 @@ describe('AbortControllerMiddleware', () => {
   });
 
   it('should abort on timeout', (done) => {
-    AbortControllerMiddleware.setOptions({ timeout: 10, enableLogging: false });
+    AbortControllerMiddleware.setOptions({ timeout: 10, enableLogging: false }); // 10ms timeout
     const fakeReq: any = { on: jest.fn() };
     const fakeRes: any = { on: jest.fn() };
     const fakeNext = jest.fn();

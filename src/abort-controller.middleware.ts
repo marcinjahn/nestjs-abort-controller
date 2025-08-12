@@ -20,6 +20,7 @@ export class AbortControllerMiddleware implements NestMiddleware {
   use(req: AbortControllerRequest, res: Response, next: () => void) {
     const controller = new AbortController();
 
+    // Timeout in milliseconds (default: 30000ms = 30 seconds)
     const timeout = AbortControllerMiddleware.options.timeout ?? 30000;
     const enableLogging = AbortControllerMiddleware.options.enableLogging ?? false;
 

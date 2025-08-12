@@ -13,7 +13,7 @@ Graceful request cancellation support for NestJS using native `AbortController`.
 - ⚡ **Lightweight**: Zero additional dependencies (only Node >= 16)
 - 🔧 **TypeScript Support**: Full TypeScript support with proper type definitions
 - 🛡️ **Error Handling**: Built-in utilities for checking abort status
-- ⏰ **Configurable Timeout**: Set request timeout to automatically abort long-running operations
+- ⏰ **Configurable Timeout**: Set request timeout in **milliseconds** to automatically abort long-running operations
 - 📝 **Logging Support**: Optional logging for debugging abort scenarios
 
 ## 📦 Installation
@@ -33,7 +33,7 @@ import { AbortControllerModule } from 'nestjs-abort-controller';
 @Module({
   imports: [
     AbortControllerModule.forRoot({
-      timeout: 30000, // 30 seconds timeout
+      timeout: 30000, // 30000ms = 30 seconds timeout
       enableLogging: true,
     }),
   ],
@@ -128,7 +128,7 @@ import { AbortControllerModule } from 'nestjs-abort-controller';
 @Module({
   imports: [
     AbortControllerModule.forRoot({
-      timeout: 30000, // 30 seconds
+      timeout: 30000, // 30000ms = 30 seconds
       enableLogging: true,
     }),
   ],
@@ -146,7 +146,7 @@ import { AbortControllerModule } from 'nestjs-abort-controller';
 @Module({
   imports: [
     AbortControllerModule.forRoutes(['/api/*'], {
-      timeout: 60000,
+      timeout: 60000, // 60000ms = 60 seconds
       enableLogging: false,
     }),
   ],
@@ -160,7 +160,7 @@ export class AppModule {}
 
 ```typescript
 interface AbortControllerOptions {
-  timeout?: number; // Timeout in milliseconds (default: 30000)
+  timeout?: number; // Timeout duration in milliseconds (default: 30000ms = 30 seconds)
   enableLogging?: boolean; // Enable debug logging (default: false)
 }
 ```
